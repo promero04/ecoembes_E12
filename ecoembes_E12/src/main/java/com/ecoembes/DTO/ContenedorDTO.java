@@ -1,69 +1,91 @@
 package com.ecoembes.DTO;
 
-import io.swagger.v3.oas.annotations.media.Schema; // Importación para las anotaciones de Swagger, no se por qué no va
+import java.util.Objects;
+
+import com.ecoembes.entity.EstadoEnvase;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description = "Data Transfer Object for Contenedor entity")
-    public class ContenedorDTO {
-    
-	    public enum EstadoEnvase {
-		    VERDE, // Hay espacio 
-		    NARANJA, // Poco espacio
-		    ROJO // Lleno
-	    }
-	    protected int idContenedor;
-	    protected String ubicacion;
-	    protected double capInicial;
-	    protected EstadoEnvase NEstadoEnvase;
-	    protected int numEnvases;
-        
-        public ContenedorDTO(int idContenedor, String ubicacion, double capInicial, EstadoEnvase nEstadoEnvase,
-                int numEnvases) {
-            super();
-            this.idContenedor = idContenedor;
-            this.ubicacion = ubicacion;
-            this.capInicial = capInicial;
-            NEstadoEnvase = nEstadoEnvase;
-            this.numEnvases = numEnvases;
-        }
+public class ContenedorDTO {
 
-	    public int getIdContenedor() {
-		    return idContenedor;
-	    }
+    private int idContenedor;
+    private String ubicacion;
+    private double capInicial;
+    private EstadoEnvase estadoEnvase;
+    private int numEnvases;
 
-	    public void setIdContenedor(int idContenedor) {
-		    this.idContenedor = idContenedor;
-	    }
-
-	    public String getUbicacion() {
-		    return ubicacion;
-	    }
-
-	    public void setUbicacion(String ubicacion) {
-		    this.ubicacion = ubicacion;
-	    }
-
-        public double getCapInicial() {
-            return capInicial;
-        }
-
-        public void setCapInicial(double capInicial) {
-            this.capInicial = capInicial;
-        }
-
-        public EstadoEnvase getNEstadoEnvase() {
-            return NEstadoEnvase;
-        }
-
-        public void setNEstadoEnvase(EstadoEnvase nEstadoEnvase) {
-            NEstadoEnvase = nEstadoEnvase;
-        }
-
-	    public int getNumEnvases() {
-		    return numEnvases;
-	    }
-
-	    public void setNumEnvases(int numEnvases) {
-		    this.numEnvases = numEnvases;
-	    }
+    public ContenedorDTO() {
+        // Constructor sin argumentos necesario para la deserializacion.
     }
 
+    public ContenedorDTO(int idContenedor, String ubicacion, double capInicial, EstadoEnvase estadoEnvase,
+            int numEnvases) {
+        this.idContenedor = idContenedor;
+        this.ubicacion = ubicacion;
+        this.capInicial = capInicial;
+        this.estadoEnvase = estadoEnvase;
+        this.numEnvases = numEnvases;
+    }
+
+    public int getIdContenedor() {
+        return idContenedor;
+    }
+
+    public void setIdContenedor(int idContenedor) {
+        this.idContenedor = idContenedor;
+    }
+
+    public String getUbicacion() {
+        return ubicacion;
+    }
+
+    public void setUbicacion(String ubicacion) {
+        this.ubicacion = ubicacion;
+    }
+
+    public double getCapInicial() {
+        return capInicial;
+    }
+
+    public void setCapInicial(double capInicial) {
+        this.capInicial = capInicial;
+    }
+
+    public EstadoEnvase getEstadoEnvase() {
+        return estadoEnvase;
+    }
+
+    public void setEstadoEnvase(EstadoEnvase estadoEnvase) {
+        this.estadoEnvase = estadoEnvase;
+    }
+
+    public int getNumEnvases() {
+        return numEnvases;
+    }
+
+    public void setNumEnvases(int numEnvases) {
+        this.numEnvases = numEnvases;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(capInicial, estadoEnvase, idContenedor, numEnvases, ubicacion);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        ContenedorDTO other = (ContenedorDTO) obj;
+        return Double.doubleToLongBits(capInicial) == Double.doubleToLongBits(other.capInicial)
+                && idContenedor == other.idContenedor
+                && numEnvases == other.numEnvases
+                && estadoEnvase == other.estadoEnvase
+                && Objects.equals(ubicacion, other.ubicacion);
+    }
+}

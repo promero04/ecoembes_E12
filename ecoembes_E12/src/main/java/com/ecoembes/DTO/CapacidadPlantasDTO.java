@@ -2,9 +2,16 @@ package com.ecoembes.DTO;
 
 import java.util.Objects;
 
-public class CapacidadPlantasDTO { // Clase DTO para la capacidad de las plantas de reciclaje
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Data Transfer Object for planta recycling capacity")
+public class CapacidadPlantasDTO {
 	private String nombrePlanta;
 	private double capacidadTotal;
+
+	public CapacidadPlantasDTO() {
+		// Constructor sin argumentos necesario para la deserializacion.
+	}
 
 	public CapacidadPlantasDTO(String nombrePlanta, double capacidadTotal) {
 		this.nombrePlanta = nombrePlanta;
