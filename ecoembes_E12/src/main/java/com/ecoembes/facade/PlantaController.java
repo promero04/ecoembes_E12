@@ -28,7 +28,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/plantas")
-@Tag(name = "Plantas", description = "Capacidades y asignación de contenedores a plantas de reciclaje")
+@Tag(name = "Plantas", description = "Capacidades y asignacion de contenedores a plantas de reciclaje")
 public class PlantaController {
 
     private final PlantaService plantaService;
@@ -68,7 +68,7 @@ public class PlantaController {
         List<Integer> ids = (List<Integer>) payload.getOrDefault("contenedores", new ArrayList<>());
 
         if (authService.validarToken(token).isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("error", "Token no válido"));
+            return ResponseEntity.status(401).body(Map.of("error", "Token no valido"));
         }
 
         List<ContenedorDTO> contenedores = ids.stream()

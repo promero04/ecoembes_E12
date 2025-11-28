@@ -9,31 +9,41 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
 
 import com.ecoembes.entity.Personal;
+import com.ecoembes.repository.PersonalRepository;
+
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class AuthService {
 
-    private final Map<String, Personal> usuarios = new ConcurrentHashMap<>();
+    private final PersonalRepository personalRepository;
     private final Map<String, Personal> tokensActivos = new ConcurrentHashMap<>();
 
-    public AuthService() {
-        // Usuarios de ejemplo para pruebas iniciales.
+    public AuthService(PersonalRepository personalRepository) {
+        this.personalRepository = personalRepository;
+    }
+
+    @PostConstruct
+    public void initDemoUsers() {
         registrarUsuarioDemo("Ana", "ana@ecoembes.com", "1234");
         registrarUsuarioDemo("Luis", "luis@ecoembes.com", "1234");
     }
 
     private void registrarUsuarioDemo(String nombre, String correo, String contrasena) {
-        usuarios.put(correo, new Personal(nombre, correo, contrasena));
+        personalRepository.findByCorreo(correo)
+                .orElseGet(() -> personalRepository.save(new Personal(nombre, correo, contrasena)));
     }
 
     public Optional<String> login(String correo, String contrasena) {
-        Personal personal = usuarios.get(correo);
-        if (personal == null || !personal.getContrasena().equals(contrasena)) {
+        Optional<Personal> personalOpt = personalRepository.findByCorreo(correo);
+        if (personalOpt.isEmpty() || !personalOpt.get().getContrasena().equals(contrasena)) {
             return Optional.empty();
         }
+        Personal personal = personalOpt.get();
         String token = UUID.randomUUID() + "-" + LocalDateTime.now();
         tokensActivos.put(token, personal);
         personal.setToken();
+        personalRepository.save(personal);
         return Optional.of(token);
     }
 
@@ -41,6 +51,7 @@ public class AuthService {
         Personal personal = tokensActivos.remove(token);
         if (personal != null) {
             personal.setTokenNull();
+            personalRepository.save(personal);
             return true;
         }
         return false;

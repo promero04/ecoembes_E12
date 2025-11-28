@@ -1,89 +1,97 @@
 package com.ecoembes.service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 
 import com.ecoembes.DTO.ContenedorDTO;
 import com.ecoembes.entity.Contenedor;
 import com.ecoembes.entity.EstadoEnvase;
+import com.ecoembes.entity.Lectura;
+import com.ecoembes.repository.ContenedorRepository;
+import com.ecoembes.repository.LecturaRepository;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 
 @Service
 public class ContenedorService {
 
-    private final Map<Integer, Contenedor> contenedores = new ConcurrentHashMap<>();
-    private final Map<Integer, List<SensorLectura>> historico = new ConcurrentHashMap<>();
+    private final ContenedorRepository contenedorRepository;
+    private final LecturaRepository lecturaRepository;
 
-    public ContenedorService() {
-        // Datos de ejemplo
-        crear(new ContenedorDTO(100, "Calle Mayor 1, 28001", 120.0, EstadoEnvase.VERDE, 10));
-        crear(new ContenedorDTO(101, "Calle Alcalá 45, 28014", 150.0, EstadoEnvase.NARANJA, 90));
-        crear(new ContenedorDTO(102, "Calle Serrano 90, 28006", 180.0, EstadoEnvase.ROJO, 180));
+    public ContenedorService(ContenedorRepository contenedorRepository, LecturaRepository lecturaRepository) {
+        this.contenedorRepository = contenedorRepository;
+        this.lecturaRepository = lecturaRepository;
+    }
+
+    @PostConstruct
+    public void initData() {
+        if (contenedorRepository.count() == 0) {
+            crear(new ContenedorDTO(0, "Calle Mayor 1, 28001", 120.0, EstadoEnvase.VERDE, 10));
+            crear(new ContenedorDTO(0, "Calle Alcala 45, 28014", 150.0, EstadoEnvase.NARANJA, 90));
+            crear(new ContenedorDTO(0, "Calle Serrano 90, 28006", 180.0, EstadoEnvase.ROJO, 180));
+        }
     }
 
     public Collection<ContenedorDTO> listar() {
-        return contenedores.values().stream().map(this::toDto).toList();
+        return contenedorRepository.findAll().stream().map(this::toDto).toList();
     }
 
     public Optional<ContenedorDTO> obtener(int id) {
-        return Optional.ofNullable(contenedores.get(id)).map(this::toDto);
+        return contenedorRepository.findById(id).map(this::toDto);
     }
 
+    @Transactional
     public ContenedorDTO crear(ContenedorDTO dto) {
         Contenedor contenedor = new Contenedor(dto.getUbicacion(), dto.getCapInicial(),
                 dto.getEstadoEnvase() == null ? EstadoEnvase.VERDE : dto.getEstadoEnvase(),
                 dto.getNumEnvases());
-        contenedor.setIdContenedor(dto.getIdContenedor());
-        contenedores.put(contenedor.getIdContenedor(), contenedor);
-        historico.putIfAbsent(contenedor.getIdContenedor(), new ArrayList<>());
-        historico.get(contenedor.getIdContenedor())
-                .add(new SensorLectura(LocalDate.now(), dto.getNumEnvases(), contenedor.getNEstadoEnvase()));
-        return toDto(contenedor);
+        Contenedor guardado = contenedorRepository.save(contenedor);
+        lecturaRepository.save(new Lectura(LocalDate.now(), dto.getNumEnvases(), guardado.getNEstadoEnvase(), guardado));
+        return toDto(guardado);
     }
 
+    @Transactional
     public Optional<ContenedorDTO> actualizarSensor(int id, int numEnvases, EstadoEnvase estado) {
-        Contenedor contenedor = contenedores.get(id);
-        if (contenedor == null) {
+        Optional<Contenedor> opt = contenedorRepository.findById(id);
+        if (opt.isEmpty()) {
             return Optional.empty();
         }
+        Contenedor contenedor = opt.get();
         contenedor.setNumLlenado(numEnvases);
         contenedor.setNEstadoEnvase(estado);
-        historico.computeIfAbsent(id, k -> new ArrayList<>())
-                .add(new SensorLectura(LocalDate.now(), numEnvases, estado));
-        return Optional.of(toDto(contenedor));
+        Contenedor actualizado = contenedorRepository.save(contenedor);
+        lecturaRepository.save(new Lectura(LocalDate.now(), numEnvases, estado, actualizado));
+        return Optional.of(toDto(actualizado));
     }
 
     public List<ContenedorDTO> buscarPorZona(String zona) {
         if (zona == null || zona.isBlank()) {
             return listar().stream().toList();
         }
-        String criterio = zona.toLowerCase();
-        return contenedores.values().stream()
-                .filter(c -> c.getUbicacion() != null && c.getUbicacion().toLowerCase().contains(criterio))
+        return contenedorRepository.findByUbicacionContainingIgnoreCase(zona)
+                .stream()
                 .map(this::toDto)
                 .toList();
     }
 
     public List<ContenedorDTO> consultarUso(int id, LocalDate inicio, LocalDate fin) {
-        List<SensorLectura> lecturas = historico.getOrDefault(id, List.of());
-        return lecturas.stream()
-                .filter(l -> !l.fecha.isBefore(inicio) && !l.fecha.isAfter(fin))
-                .map(l -> {
-                    ContenedorDTO dto = new ContenedorDTO();
-                    dto.setIdContenedor(id);
-                    dto.setNumEnvases(l.numEnvases);
-                    dto.setEstadoEnvase(l.estado);
-                    dto.setUbicacion(contenedores.get(id) != null ? contenedores.get(id).getUbicacion() : null);
-                    dto.setCapInicial(contenedores.get(id) != null ? contenedores.get(id).getCapInicial() : 0);
-                    return dto;
-                }).toList();
+        List<Lectura> lecturas = lecturaRepository.findByContenedorIdContenedorAndFechaBetween(id, inicio, fin);
+        return lecturas.stream().map(l -> {
+            ContenedorDTO dto = new ContenedorDTO();
+            dto.setIdContenedor(id);
+            dto.setNumEnvases(l.getTotalEnvases());
+            dto.setEstadoEnvase(l.getNivelLlenado());
+            contenedorRepository.findById(id).ifPresent(c -> {
+                dto.setUbicacion(c.getUbicacion());
+                dto.setCapInicial(c.getCapInicial());
+            });
+            return dto;
+        }).toList();
     }
 
     private ContenedorDTO toDto(Contenedor contenedor) {
@@ -94,8 +102,5 @@ public class ContenedorService {
         dto.setEstadoEnvase(contenedor.getNEstadoEnvase());
         dto.setNumEnvases(contenedor.getNumLlenado());
         return dto;
-    }
-
-    private record SensorLectura(LocalDate fecha, int numEnvases, EstadoEnvase estado) {
     }
 }

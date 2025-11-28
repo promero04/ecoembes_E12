@@ -3,80 +3,100 @@ package com.ecoembes.entity;
 import java.time.LocalDate;
 import java.util.Objects;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "personal")
 public class Personal {
-	private static int contadorId = 0;
-	protected int idPersonal; // No está en el diagrama pero considero que es importante
-	protected String nombre;
-	protected String correo;
-	protected String contrasena;
-	private LocalDate token; // Tampoco está pero podría ser interesante para la gestión de sesiones
 
-	public Personal(String nombre, String correo, String contrasena) {
-		super();
-		this.idPersonal = contadorId++;
-		this.nombre = nombre;
-		this.correo = correo;
-		this.contrasena = contrasena;
-		this.token = null;
-	}
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_personal")
+    private Integer idPersonal; // No está en el diagrama pero se usa como PK
 
-    // He puesto en general más getters y setters de lo que hay puestos en los diagramas por si fueran necesarios en futuros cambios
-	public int getIdPersonal() {
-		return idPersonal;
-	}
+    @Column(nullable = false)
+    private String nombre;
 
-	public String getNombre() {
-		return nombre;
-	}
+    @Column(nullable = false, unique = true)
+    private String correo;
 
-	public void setNombre(String nombre) {
-		this.nombre = nombre;
-	}
+    @Column(nullable = false)
+    private String contrasena;
 
-	public String getCorreo() {
-		return correo;
-	}
+    private LocalDate token; // usado para la gestión de sesiones
 
-	public void setCorreo(String correo) {
-		this.correo = correo;
-	}
+    protected Personal() {
+        // JPA
+    }
 
-	public String getContrasena() {
-		return contrasena;
-	}
+    public Personal(String nombre, String correo, String contrasena) {
+        this.nombre = nombre;
+        this.correo = correo;
+        this.contrasena = contrasena;
+        this.token = null;
+    }
 
-	public void setContrasena(String contrasena) {
-		this.contrasena = contrasena;
-	}
-	
-	public LocalDate getToken() {
-		return token;
-	}
-	
-	public void setToken() {
-		this.token = LocalDate.now();
-	}
+    public Integer getIdPersonal() {
+        return idPersonal;
+    }
 
-	public void setTokenNull() {
-		this.token = null;
-	}
-	
-	@Override
-	public int hashCode() {
-		return Objects.hash(contrasena, correo, idPersonal, nombre);
-	}
+    public String getNombre() {
+        return nombre;
+    }
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Personal other = (Personal) obj;
-		return Objects.equals(contrasena, other.contrasena)
-				&& Objects.equals(correo, other.correo) && idPersonal == other.idPersonal
-				&& Objects.equals(nombre, other.nombre);
-	}
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getCorreo() {
+        return correo;
+    }
+
+    public void setCorreo(String correo) {
+        this.correo = correo;
+    }
+
+    public String getContrasena() {
+        return contrasena;
+    }
+
+    public void setContrasena(String contrasena) {
+        this.contrasena = contrasena;
+    }
+
+    public LocalDate getToken() {
+        return token;
+    }
+
+    public void setToken() {
+        this.token = LocalDate.now();
+    }
+
+    public void setTokenNull() {
+        this.token = null;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(contrasena, correo, idPersonal, nombre);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        Personal other = (Personal) obj;
+        return Objects.equals(contrasena, other.contrasena)
+                && Objects.equals(correo, other.correo) && Objects.equals(idPersonal, other.idPersonal)
+                && Objects.equals(nombre, other.nombre);
+    }
 }

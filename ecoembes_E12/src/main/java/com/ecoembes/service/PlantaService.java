@@ -1,93 +1,133 @@
 package com.ecoembes.service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 
 import com.ecoembes.DTO.CapacidadPlantasDTO;
 import com.ecoembes.DTO.ContenedorDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
+import com.ecoembes.entity.CapacidadPlanta;
+import com.ecoembes.entity.Contenedor;
 import com.ecoembes.entity.PlantaReciclaje;
 import com.ecoembes.entity.RegistroAuditoria;
+import com.ecoembes.repository.CapacidadPlantaRepository;
+import com.ecoembes.repository.ContenedorRepository;
+import com.ecoembes.repository.PlantaReciclajeRepository;
+import com.ecoembes.repository.RegistroAuditoriaRepository;
+import com.ecoembes.service.proxy.ContSocketProxy;
+import com.ecoembes.service.proxy.PlasSbProxy;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.transaction.Transactional;
 
 @Service
 public class PlantaService {
 
-    private final Map<String, PlantaReciclaje> plantas = new ConcurrentHashMap<>();
-    private final Map<String, Map<LocalDate, Double>> capacidadPorFecha = new ConcurrentHashMap<>();
-    private final List<RegistroAuditoria> auditoria = new ArrayList<>();
+    private final PlantaReciclajeRepository plantaReciclajeRepository;
+    private final CapacidadPlantaRepository capacidadPlantaRepository;
+    private final RegistroAuditoriaRepository registroAuditoriaRepository;
+    private final ContenedorRepository contenedorRepository;
+    private final PlasSbProxy plasSbProxy;
+    private final ContSocketProxy contSocketProxy;
 
-    public PlantaService() {
-        registrarPlantaDemo("PlasSB Ltd.");
-        registrarPlantaDemo("ContSocket Ltd.");
+    public PlantaService(PlantaReciclajeRepository plantaReciclajeRepository,
+            CapacidadPlantaRepository capacidadPlantaRepository,
+            RegistroAuditoriaRepository registroAuditoriaRepository,
+            ContenedorRepository contenedorRepository,
+            PlasSbProxy plasSbProxy,
+            ContSocketProxy contSocketProxy) {
+        this.plantaReciclajeRepository = plantaReciclajeRepository;
+        this.capacidadPlantaRepository = capacidadPlantaRepository;
+        this.registroAuditoriaRepository = registroAuditoriaRepository;
+        this.contenedorRepository = contenedorRepository;
+        this.plasSbProxy = plasSbProxy;
+        this.contSocketProxy = contSocketProxy;
+    }
+
+    @PostConstruct
+    public void initData() {
+        if (plantaReciclajeRepository.count() == 0) {
+            registrarPlantaDemo("PlasSB Ltd.");
+            registrarPlantaDemo("ContSocket Ltd.");
+        }
         cargarCapacidadDemo();
     }
 
     private void registrarPlantaDemo(String nombre) {
-        plantas.put(nombre, new PlantaReciclaje(nombre));
+        plantaReciclajeRepository.findByNombre(nombre).orElseGet(() -> plantaReciclajeRepository.save(new PlantaReciclaje(nombre)));
     }
 
     private void cargarCapacidadDemo() {
         LocalDate hoy = LocalDate.now();
-        plantas.keySet().forEach(nombre -> {
-            Map<LocalDate, Double> capacidades = new HashMap<>();
+        plantaReciclajeRepository.findAll().forEach(planta -> {
             for (int i = 0; i < 10; i++) {
-                capacidades.put(hoy.plusDays(i), 50.0 + (i * 2));
+                final int offset = i;
+                LocalDate fecha = hoy.plusDays(offset);
+                double capacidadBase = 50.0 + (offset * 2);
+                capacidadPlantaRepository.findByPlantaAndFecha(planta, fecha)
+                        .orElseGet(() -> capacidadPlantaRepository.save(new CapacidadPlanta(planta, fecha, capacidadBase)));
             }
-            capacidadPorFecha.put(nombre, capacidades);
         });
     }
 
     public List<CapacidadPlantasDTO> listarCapacidades(LocalDate fecha) {
         LocalDate target = fecha != null ? fecha : LocalDate.now();
-        return plantas.keySet().stream()
-                .map(nombre -> getCapacidad(nombre, target).orElse(null))
-                .filter(dto -> dto != null)
+        return capacidadPlantaRepository.findByFecha(target).stream()
+                .map(this::toDto)
                 .toList();
     }
 
     public Optional<CapacidadPlantasDTO> getCapacidad(String nombrePlanta, LocalDate fecha) {
-        PlantaReciclaje planta = plantas.get(nombrePlanta);
-        if (planta == null) {
+        Optional<PlantaReciclaje> planta = plantaReciclajeRepository.findByNombre(nombrePlanta);
+        if (planta.isEmpty()) {
             return Optional.empty();
         }
-        Map<LocalDate, Double> capacidades = capacidadPorFecha.getOrDefault(nombrePlanta, Map.of());
-        Double capacidad = capacidades.get(fecha);
-        if (capacidad == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new CapacidadPlantasDTO(planta.getNombre(), capacidad));
+        return capacidadPlantaRepository.findByPlantaAndFecha(planta.get(), fecha).map(this::toDto);
     }
 
+    @Transactional
     public Optional<RegistroAuditoriaDTO> asignar(String nombrePlanta, List<ContenedorDTO> contenedores,
             String nombrePersonal) {
         LocalDate hoy = LocalDate.now();
-        Optional<CapacidadPlantasDTO> capacidadDTO = getCapacidad(nombrePlanta, hoy);
-        if (capacidadDTO.isEmpty()) {
+        Optional<PlantaReciclaje> planta = plantaReciclajeRepository.findByNombre(nombrePlanta);
+        if (planta.isEmpty()) {
             return Optional.empty();
         }
-        double capacidadDisponible = capacidadDTO.get().getCapacidadTotal();
+        Optional<CapacidadPlanta> capacidad = capacidadPlantaRepository.findByPlantaAndFecha(planta.get(), hoy);
+        if (capacidad.isEmpty()) {
+            return Optional.empty();
+        }
+        double capacidadDisponible = capacidad.get().getCapacidadDisponible();
         double totalEnvases = contenedores.stream().mapToDouble(ContenedorDTO::getNumEnvases).sum();
         if (totalEnvases > capacidadDisponible) {
             return Optional.empty();
         }
-        // Reducimos la capacidad disponible del día como simulación.
-        capacidadPorFecha.get(nombrePlanta).put(hoy, capacidadDisponible - totalEnvases);
 
-        RegistroAuditoria registro = new RegistroAuditoria(null, nombrePlanta, null, hoy, totalEnvases);
-        auditoria.add(registro);
+        capacidad.get().setCapacidadDisponible(capacidadDisponible - totalEnvases);
+        capacidadPlantaRepository.save(capacidad.get());
+
+        Contenedor contenedorAsignado = contenedores.isEmpty() ? null
+                : contenedorRepository.findById(contenedores.get(0).getIdContenedor()).orElse(null);
+        RegistroAuditoria registro = registroAuditoriaRepository
+                .save(new RegistroAuditoria(null, nombrePlanta, contenedorAsignado, hoy, totalEnvases));
 
         RegistroAuditoriaDTO dto = new RegistroAuditoriaDTO();
         dto.setPlanta(nombrePlanta);
         dto.setFecha(hoy);
         dto.setTotalEnvases(totalEnvases);
         dto.setContenedorAsignado(contenedores.isEmpty() ? null : contenedores.get(0));
+        dto.setPersonal(null);
+        // Registrar en servicios externos
+        String asignacionId = "ASG-" + registro.getId();
+        plasSbProxy.registrarAsignacion(asignacionId, dto);
+        contSocketProxy.registrarAsignacion(asignacionId, dto);
         return Optional.of(dto);
+    }
+
+    private CapacidadPlantasDTO toDto(CapacidadPlanta capacidad) {
+        return new CapacidadPlantasDTO(capacidad.getPlanta().getNombre(), capacidad.getCapacidadDisponible());
     }
 }

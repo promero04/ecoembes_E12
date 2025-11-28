@@ -25,7 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/contenedores")
-@Tag(name = "Contenedores", description = "Gestión y consulta de contenedores")
+@Tag(name = "Contenedores", description = "Gestion y consulta de contenedores")
 public class ContenedorController {
 
     private final ContenedorService contenedorService;

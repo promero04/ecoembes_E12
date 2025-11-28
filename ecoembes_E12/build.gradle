@@ -18,10 +18,16 @@ repositories {
 	mavenCentral()
 }
 
+springBoot {
+	mainClass = 'com.ecoembes.service.EcoembesE12App'
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	runtimeOnly 'com.h2database:h2'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'io.projectreactor:reactor-test'
@@ -30,4 +36,24 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named('bootRun') {
+	mainClass = 'com.ecoembes.service.EcoembesE12App'
+}
+
+tasks.register('bootRunPlasSb', org.springframework.boot.gradle.tasks.run.BootRun) {
+	group = 'application'
+	description = 'Arranca el servicio PlasSB (Spring Boot + JPA/H2).'
+	mainClass = 'com.plassb.PlasSbApplication'
+	args('--spring.profiles.active=plassb')
+	classpath = sourceSets.main.runtimeClasspath
+}
+
+tasks.register('bootRunContSocket', org.springframework.boot.gradle.tasks.run.BootRun) {
+	group = 'application'
+	description = 'Arranca el servicio ContSocket (REST + sockets en memoria).'
+	mainClass = 'com.contsocket.ContSocketApplication'
+	args('--spring.profiles.active=contsocket')
+	classpath = sourceSets.main.runtimeClasspath
 }

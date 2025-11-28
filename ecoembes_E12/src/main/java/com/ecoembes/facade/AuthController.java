@@ -27,13 +27,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login con correo y contraseña")
+    @Operation(summary = "Login con correo y contrasena")
     public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> body) {
         String correo = body.get("correo");
         String contrasena = body.get("contrasena");
         Optional<String> token = authService.login(correo, contrasena);
         return token.map(t -> ResponseEntity.ok(Map.of("token", t)))
-                .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "Credenciales inválidas")));
+                .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "Credenciales invalidas")));
     }
 
     @PostMapping("/logout")
@@ -43,6 +43,6 @@ public class AuthController {
         if (ok) {
             return ResponseEntity.ok(Map.of("status", "logout"));
         }
-        return ResponseEntity.status(401).body(Map.of("error", "Token no válido"));
+        return ResponseEntity.status(401).body(Map.of("error", "Token no valido"));
     }
 }
