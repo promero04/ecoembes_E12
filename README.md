@@ -9,13 +9,13 @@ Este repo contiene tres servicios separados en el mismo proyecto Gradle:
 ## Prerrequisitos
 - JDK 21 instalado y en PATH.
 - PowerShell / CMD en Windows.
-- Desde la raíz del módulo: `C:\Users\p.romero\git\ecoembes_E12\ecoembes_E12`.
+- Desde la raíz del módulo: `C:\Users\usuario\git\ecoembes_E12\ecoembes_E12`.
 
 ## Comandos básicos (Windows)
 Usa el wrapper Gradle del proyecto (`gradlew.bat`):
 
 ```powershell
-cd C:\Users\p.romero\git\ecoembes_E12\ecoembes_E12
+cd C:\Users\usuario\git\ecoembes_E12\ecoembes_E12
 ```
 
 ### 1) Ecoembes Server (puerto 8081)
