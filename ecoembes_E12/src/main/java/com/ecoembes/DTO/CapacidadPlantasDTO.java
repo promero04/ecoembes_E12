@@ -10,7 +10,7 @@ public class CapacidadPlantasDTO {
 	private double capacidadTotal;
 
 	public CapacidadPlantasDTO() {
-		// Constructor sin argumentos necesario para la deserializacion.
+		
 	}
 
 	public CapacidadPlantasDTO(String nombrePlanta, double capacidadTotal) {
