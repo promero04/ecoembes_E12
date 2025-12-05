@@ -30,7 +30,7 @@ cd C:\Users\usuario\git\ecoembes_E12\ecoembes_E12
 .\gradlew.bat bootRunPlasSb
 ```
 - Swagger UI: http://localhost:8082/swagger-ui/index.html
-- H2 console: http://localhost:8082/h2-console (JDBC `jdbc:h2:mem:plassb`, user `sa`, sin password).
+- H2 console: http://localhost:8082/h2-plassb (JDBC `jdbc:h2:mem:plassb`, user `sa`, sin password).
 
 ### 3) ContSocket Server (puerto 8083, socket 9090)
 ```powershell
