@@ -1,7 +1,9 @@
 package com.ecoembes.service;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -17,8 +19,8 @@ import com.ecoembes.repository.CapacidadPlantaRepository;
 import com.ecoembes.repository.ContenedorRepository;
 import com.ecoembes.repository.PlantaReciclajeRepository;
 import com.ecoembes.repository.RegistroAuditoriaRepository;
-import com.ecoembes.service.proxy.ContSocketProxy;
-import com.ecoembes.service.proxy.PlasSbProxy;
+import com.ecoembes.service.proxy.PlantaGateway;
+import com.ecoembes.service.proxy.PlantaGatewayFactory;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -30,21 +32,18 @@ public class PlantaService {
     private final CapacidadPlantaRepository capacidadPlantaRepository;
     private final RegistroAuditoriaRepository registroAuditoriaRepository;
     private final ContenedorRepository contenedorRepository;
-    private final PlasSbProxy plasSbProxy;
-    private final ContSocketProxy contSocketProxy;
+    private final PlantaGatewayFactory plantaGatewayFactory;
 
     public PlantaService(PlantaReciclajeRepository plantaReciclajeRepository,
             CapacidadPlantaRepository capacidadPlantaRepository,
             RegistroAuditoriaRepository registroAuditoriaRepository,
             ContenedorRepository contenedorRepository,
-            PlasSbProxy plasSbProxy,
-            ContSocketProxy contSocketProxy) {
+            PlantaGatewayFactory plantaGatewayFactory) {
         this.plantaReciclajeRepository = plantaReciclajeRepository;
         this.capacidadPlantaRepository = capacidadPlantaRepository;
         this.registroAuditoriaRepository = registroAuditoriaRepository;
         this.contenedorRepository = contenedorRepository;
-        this.plasSbProxy = plasSbProxy;
-        this.contSocketProxy = contSocketProxy;
+        this.plantaGatewayFactory = plantaGatewayFactory;
     }
 
     @PostConstruct
@@ -75,9 +74,15 @@ public class PlantaService {
 
     public List<CapacidadPlantasDTO> listarCapacidades(LocalDate fecha) {
         LocalDate target = fecha != null ? fecha : LocalDate.now();
-        return capacidadPlantaRepository.findByFecha(target).stream()
+        Map<String, CapacidadPlantasDTO> capacidades = new LinkedHashMap<>();
+        // Capacidades locales
+        capacidadPlantaRepository.findByFecha(target).stream()
                 .map(this::toDto)
-                .toList();
+                .forEach(cap -> capacidades.put(cap.getPlanta(), cap));
+        // Capacidades externas (PlasSB y ContSocket)
+        plantaGatewayFactory.getGateways().forEach(gw -> gw.capacidades(target)
+                .forEach(cap -> capacidades.put(cap.getPlanta(), cap)));
+        return capacidades.values().stream().toList();
     }
 
     public Optional<CapacidadPlantasDTO> getCapacidad(String nombrePlanta, LocalDate fecha) {
@@ -120,10 +125,11 @@ public class PlantaService {
         dto.setTotalEnvases(totalEnvases);
         dto.setContenedorAsignado(contenedores.isEmpty() ? null : contenedores.get(0));
         dto.setPersonal(null);
-        // Registrar en servicios externos
+        // Registrar en servicios externos a través de gateways configurados
         String asignacionId = "ASG-" + registro.getId();
-        plasSbProxy.registrarAsignacion(asignacionId, dto);
-        contSocketProxy.registrarAsignacion(asignacionId, dto);
+        for (PlantaGateway gateway : plantaGatewayFactory.getGateways()) {
+            gateway.registrarAsignacion(asignacionId, dto);
+        }
         return Optional.of(dto);
     }
 

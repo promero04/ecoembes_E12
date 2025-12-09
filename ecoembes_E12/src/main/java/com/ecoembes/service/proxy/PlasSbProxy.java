@@ -18,9 +18,10 @@ import com.ecoembes.DTO.RegistroAuditoriaDTO;
 import reactor.core.publisher.Mono;
 
 @Component
-public class PlasSbProxy {
+public class PlasSbProxy implements PlantaGateway {
 
     private static final Logger log = LoggerFactory.getLogger(PlasSbProxy.class);
+    private static final String ID = "plassb";
     private final WebClient client;
     private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
 
@@ -28,6 +29,12 @@ public class PlasSbProxy {
         this.client = builder.baseUrl(baseUrl).build();
     }
 
+    @Override
+    public String id() {
+        return ID;
+    }
+
+    @Override
     public List<CapacidadPlantasDTO> capacidades(LocalDate fecha) {
         return client.get()
                 .uri(uriBuilder -> uriBuilder.path("/capacidades")
@@ -45,10 +52,7 @@ public class PlasSbProxy {
                 .block();
     }
 
-    public Optional<CapacidadPlantasDTO> capacidadEnFecha(LocalDate fecha) {
-        return capacidades(fecha).stream().findFirst();
-    }
-
+    @Override
     public boolean registrarAsignacion(String asignacionId, RegistroAuditoriaDTO dto) {
         var payload = new AsignacionRequest(asignacionId, dto.getFecha(), dto.getPersonal() != null ? dto.getPersonal().getCorreo() : "ecoembes",
                 dto.getTotalEnvases(),
@@ -75,5 +79,10 @@ public class PlasSbProxy {
     }
 
     public record CapacidadResponse(LocalDate fecha, double capacidadTon) {
+    }
+
+    @Override
+    public Optional<CapacidadPlantasDTO> capacidad(LocalDate fecha) {
+        return capacidades(fecha).stream().findFirst();
     }
 }
