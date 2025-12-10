@@ -21,9 +21,10 @@ import com.ecoembes.DTO.RegistroAuditoriaDTO;
 import reactor.core.publisher.Mono;
 
 @Component
-public class ContSocketProxy {
+public class ContSocketProxy implements PlantaGateway {
 
     private static final Logger log = LoggerFactory.getLogger(ContSocketProxy.class);
+    private static final String ID = "contsocket";
     private final WebClient client;
     private final String socketHost;
     private final int socketPort;
@@ -38,6 +39,12 @@ public class ContSocketProxy {
         this.socketPort = socketPort;
     }
 
+    @Override
+    public String id() {
+        return ID;
+    }
+
+    @Override
     public Optional<CapacidadPlantasDTO> capacidad(LocalDate fecha) {
         return client.get()
                 .uri("/capacidades/{fecha}", formatter.format(fecha))
@@ -51,6 +58,7 @@ public class ContSocketProxy {
                 .blockOptional();
     }
 
+    @Override
     public boolean registrarAsignacion(String asignacionId, RegistroAuditoriaDTO dto) {
         var payload = new AsignacionRequest(asignacionId, dto.getFecha(),
                 dto.getPersonal() != null ? dto.getPersonal().getCorreo() : "ecoembes",
@@ -89,5 +97,10 @@ public class ContSocketProxy {
     }
 
     public record CapacidadResponse(LocalDate fecha, double capacidadTon) {
+    }
+
+    @Override
+    public List<CapacidadPlantasDTO> capacidades(LocalDate fecha) {
+        return capacidad(fecha).map(List::of).orElseGet(List::of);
     }
 }
