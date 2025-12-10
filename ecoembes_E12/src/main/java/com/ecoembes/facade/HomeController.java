@@ -15,7 +15,6 @@ public class HomeController {
         // Landing simple para evitar la página Whitelabel y guiar al usuario.
         return Map.of(
                 "status", "ok",
-                "message", "API ecoembes_E12 operativa",
-                "docs", "/swagger-ui/index.html");
+                "message", "API ecoembes_E12 operativa");
     }
 }

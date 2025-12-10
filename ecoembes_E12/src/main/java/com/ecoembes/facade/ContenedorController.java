@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ecoembes.DTO.ContenedorDTO;
+import com.ecoembes.DTO.ContenedorInfoDTO;
 import com.ecoembes.entity.EstadoEnvase;
 import com.ecoembes.service.ContenedorService;
 
@@ -24,8 +25,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/contenedores")
-@Tag(name = "Contenedores", description = "Gestion y consulta de contenedores")
+@RequestMapping("/contenedor")
+@Tag(name = "Contenedor", description = "Gestión y consulta de contenedores")
 public class ContenedorController {
 
     private final ContenedorService contenedorService;
@@ -35,47 +36,63 @@ public class ContenedorController {
     }
 
     @GetMapping
-    @Operation(summary = "Listado de contenedores")
-    public List<ContenedorDTO> listar(@RequestParam(value = "zona", required = false) String zona) {
-        if (zona != null && !zona.isBlank()) {
-            return contenedorService.buscarPorZona(zona);
+    @Operation(summary = "Listado de contenedores con filtro por zona y fecha")
+    public List<ContenedorInfoDTO> listar(@RequestParam(value = "zona", required = false) String zona,
+            @RequestParam(value = "fecha", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        if (fecha != null) {
+            return contenedorService.buscarPorFechaYZona(fecha, zona).stream().map(this::toPublicDto).toList();
         }
-        return contenedorService.listar().stream().toList();
+        if (zona != null && !zona.isBlank()) {
+            return contenedorService.buscarPorZona(zona).stream().map(this::toPublicDto).toList();
+        }
+        return contenedorService.listar().stream().map(this::toPublicDto).toList();
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Detalle de contenedor")
-    public ResponseEntity<ContenedorDTO> obtener(@PathVariable int id) {
+    public ResponseEntity<ContenedorInfoDTO> obtener(@PathVariable int id) {
         return contenedorService.obtener(id)
+                .map(this::toPublicDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    @Operation(summary = "Crear nuevo contenedor")
-    public ResponseEntity<ContenedorDTO> crear(@RequestBody ContenedorDTO dto) {
+    @Operation(summary = "Crear contenedor")
+    public ResponseEntity<ContenedorInfoDTO> crear(@RequestBody ContenedorDTO dto) {
         ContenedorDTO creado = contenedorService.crear(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toPublicDto(creado));
     }
 
     @PutMapping("/{id}/sensor")
     @Operation(summary = "Actualizar lectura del sensor")
-    public ResponseEntity<ContenedorDTO> actualizarSensor(@PathVariable int id,
+    public ResponseEntity<ContenedorInfoDTO> actualizarSensor(@PathVariable int id,
             @RequestParam int numEnvases,
             @RequestParam EstadoEnvase estado) {
         Optional<ContenedorDTO> actualizado = contenedorService.actualizarSensor(id, numEnvases, estado);
-        return actualizado.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return actualizado.map(this::toPublicDto).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}/uso")
-    @Operation(summary = "Consulta de uso/estado por rango de fechas")
-    public ResponseEntity<List<ContenedorDTO>> consultarUso(@PathVariable int id,
+    @Operation(summary = "Consulta de uso por rango de fechas")
+    public ResponseEntity<List<ContenedorInfoDTO>> consultarUso(@PathVariable int id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
-        List<ContenedorDTO> lecturas = contenedorService.consultarUso(id, inicio, fin);
+        List<ContenedorInfoDTO> lecturas = contenedorService.consultarUso(id, inicio, fin).stream()
+                .map(this::toPublicDto)
+                .toList();
         if (lecturas.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(lecturas);
+    }
+
+    private ContenedorInfoDTO toPublicDto(ContenedorDTO contenedor) {
+        ContenedorInfoDTO dto = new ContenedorInfoDTO();
+        dto.setUbicacion(contenedor.getUbicacion());
+        dto.setCapInicial(contenedor.getCapInicial());
+        dto.setEstadoEnvase(contenedor.getEstadoEnvase());
+        dto.setNumEnvases(contenedor.getNumEnvases());
+        return dto;
     }
 }

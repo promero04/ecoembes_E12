@@ -58,8 +58,9 @@ public class ContSocketService {
                 String[] parts = line.split("\\|");
                 if (parts.length >= 4) {
                     String asignacionId = parts[1];
+                    Long plantaId = parsePlantaId(parts[2]);
                     double total = Double.parseDouble(parts[3]);
-                    crearAsignacion(asignacionId, LocalDate.now(), "socket", total, List.of());
+                    crearAsignacion(asignacionId, plantaId, "socket", total, List.of());
                 }
             }
         } catch (IOException e) {
@@ -78,9 +79,9 @@ public class ContSocketService {
         return Optional.ofNullable(capacidadesPorFecha.get(fecha));
     }
 
-    public AsignacionSocket crearAsignacion(String asignacionId, LocalDate fecha, String solicitante,
+    public AsignacionSocket crearAsignacion(String asignacionId, Long plantaId, String solicitante,
             double totalEnvases, List<ContenedorSocket> contenedores) {
-        AsignacionSocket asignacion = new AsignacionSocket(asignacionId, fecha, solicitante, totalEnvases, "ACEPTADA");
+        AsignacionSocket asignacion = new AsignacionSocket(asignacionId, plantaId, solicitante, totalEnvases, "ACEPTADA");
         asignacion.getContenedores().addAll(contenedores);
         asignaciones.put(asignacionId, asignacion);
         return asignacion;
@@ -90,12 +91,26 @@ public class ContSocketService {
         return Optional.ofNullable(asignaciones.get(asignacionId));
     }
 
-    public Optional<AsignacionSocket> actualizarEstado(String asignacionId, String estado, String detalle) {
+    public List<AsignacionSocket> asignacionesPorPlanta(Long plantaId) {
+        return asignaciones.values().stream()
+                .filter(a -> plantaId == null || (a.getPlantaId() != null && a.getPlantaId().equals(plantaId)))
+                .toList();
+    }
+
+    public Optional<AsignacionSocket> actualizarEstado(String asignacionId, String estado) {
         Optional<AsignacionSocket> asig = asignacion(asignacionId);
         asig.ifPresent(a -> {
             a.setEstado(estado);
-            a.setDetalle(detalle);
         });
         return asig;
+    }
+
+    private Long parsePlantaId(String raw) {
+        try {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException ex) {
+            log.warn("No se pudo convertir plantaId desde socket: {}", raw);
+            return null;
+        }
     }
 }

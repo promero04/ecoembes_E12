@@ -79,6 +79,16 @@ public class ContenedorService {
                 .toList();
     }
 
+    public List<ContenedorDTO> buscarPorFechaYZona(LocalDate fecha, String zona) {
+        if (fecha == null) {
+            return buscarPorZona(zona);
+        }
+        return contenedorRepository.findByFechaAndZona(fecha, zona)
+                .stream()
+                .map(this::toDto)
+                .toList();
+    }
+
     public List<ContenedorDTO> consultarUso(int id, LocalDate inicio, LocalDate fin) {
         List<Lectura> lecturas = lecturaRepository.findByContenedorIdContenedorAndFechaBetween(id, inicio, fin);
         return lecturas.stream().map(l -> {

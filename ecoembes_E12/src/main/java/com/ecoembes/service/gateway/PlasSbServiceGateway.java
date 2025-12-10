@@ -1,4 +1,4 @@
-package com.ecoembes.service.proxy;
+package com.ecoembes.service.gateway;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -11,21 +11,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.ecoembes.DTO.CapacidadPlantasDTO;
-import com.ecoembes.DTO.ContenedorDTO;
+import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
 
 import reactor.core.publisher.Mono;
 
 @Component
-public class PlasSbProxy implements PlantaGateway {
+public class PlasSbServiceGateway implements PlantaGateway {
 
-    private static final Logger log = LoggerFactory.getLogger(PlasSbProxy.class);
+    private static final Logger log = LoggerFactory.getLogger(PlasSbServiceGateway.class);
     private static final String ID = "plassb";
     private final WebClient client;
     private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
 
-    public PlasSbProxy(@Value("${external.plassb.base-url}") String baseUrl, WebClient.Builder builder) {
+    public PlasSbServiceGateway(@Value("${external.plassb.base-url}") String baseUrl, WebClient.Builder builder) {
         this.client = builder.baseUrl(baseUrl).build();
     }
 
@@ -35,15 +34,16 @@ public class PlasSbProxy implements PlantaGateway {
     }
 
     @Override
-    public List<CapacidadPlantasDTO> capacidades(LocalDate fecha) {
+    public List<CapacidadPlantaDTO> capacidades(LocalDate fecha) {
+        LocalDate target = fecha != null ? fecha : LocalDate.now();
         return client.get()
-                .uri(uriBuilder -> uriBuilder.path("/capacidades")
-                        .queryParam("fechaInicio", formatter.format(fecha != null ? fecha : LocalDate.now()))
-                        .queryParam("fechaFin", formatter.format(fecha != null ? fecha : LocalDate.now()))
+                .uri(uriBuilder -> uriBuilder.path("/capacidad")
+                        .queryParam("fechaInicio", formatter.format(target))
+                        .queryParam("fechaFin", formatter.format(target))
                         .build())
                 .retrieve()
                 .bodyToFlux(CapacidadResponse.class)
-                .map(cap -> new CapacidadPlantasDTO("PlasSB", cap.capacidadTon()))
+                .map(cap -> new CapacidadPlantaDTO("PlasSB", cap.capacidadTon()))
                 .collectList()
                 .onErrorResume(ex -> {
                     log.warn("Fallo consultando capacidades PlasSB: {}", ex.getMessage());
@@ -54,11 +54,17 @@ public class PlasSbProxy implements PlantaGateway {
 
     @Override
     public boolean registrarAsignacion(String asignacionId, RegistroAuditoriaDTO dto) {
-        var payload = new AsignacionRequest(asignacionId, dto.getFecha(), dto.getPersonal() != null ? dto.getPersonal().getCorreo() : "ecoembes",
+        var contenedores = dto.getContenedorAsignado() == null ? List.<ContenedorAsignacionPayload>of()
+                : List.of(new ContenedorAsignacionPayload(
+                        dto.getContenedorAsignado().getIdContenedor(),
+                        dto.getContenedorAsignado().getNumEnvases(),
+                        dto.getContenedorAsignado().getEstadoEnvase().name()));
+        var payload = new AsignacionRequest(asignacionId, dto.getPlantaId(),
+                dto.getPersonal() != null ? dto.getPersonal().getCorreo() : "ecoembes",
                 dto.getTotalEnvases(),
-                dto.getContenedorAsignado() == null ? List.of() : List.of(dto.getContenedorAsignado()));
+                contenedores);
         Boolean ok = client.post()
-                .uri("/asignaciones")
+                .uri("/asignacion")
                 .bodyValue(payload)
                 .retrieve()
                 .bodyToMono(AsignacionResponse.class)
@@ -71,18 +77,21 @@ public class PlasSbProxy implements PlantaGateway {
         return Boolean.TRUE.equals(ok);
     }
 
-    public record AsignacionRequest(String asignacionId, LocalDate fecha, String solicitante, double totalEnvases,
-            List<ContenedorDTO> contenedores) {
+    public record AsignacionRequest(String asignacionId, Long plantaId, String solicitante, double totalEnvases,
+            List<ContenedorAsignacionPayload> contenedores) {
     }
 
     public record AsignacionResponse(String asignacionId, String estado, String mensaje) {
+    }
+
+    public record ContenedorAsignacionPayload(Integer id, Integer numEnvases, String estado) {
     }
 
     public record CapacidadResponse(LocalDate fecha, double capacidadTon) {
     }
 
     @Override
-    public Optional<CapacidadPlantasDTO> capacidad(LocalDate fecha) {
+    public Optional<CapacidadPlantaDTO> capacidad(LocalDate fecha) {
         return capacidades(fecha).stream().findFirst();
     }
 }

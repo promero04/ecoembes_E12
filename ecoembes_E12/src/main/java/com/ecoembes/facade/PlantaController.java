@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ecoembes.DTO.CapacidadPlantasDTO;
+import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.ContenedorDTO;
+import com.ecoembes.DTO.ContenedorInfoDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
+import com.ecoembes.DTO.RegistroAuditoriaInfoDTO;
 import com.ecoembes.service.AuthService;
 import com.ecoembes.service.ContenedorService;
 import com.ecoembes.service.PlantaService;
@@ -27,8 +29,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/plantas")
-@Tag(name = "Plantas", description = "Capacidades y asignacion de contenedores a plantas de reciclaje")
+@RequestMapping("/planta")
+@Tag(name = "Planta", description = "Capacidades y asignación de contenedores")
 public class PlantaController {
 
     private final PlantaService plantaService;
@@ -41,25 +43,22 @@ public class PlantaController {
         this.authService = authService;
     }
 
-    @GetMapping("/capacidades")
-    @Operation(summary = "Capacidad disponible por planta para una fecha")
-    public List<CapacidadPlantasDTO> capacidades(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
-        return plantaService.listarCapacidades(fecha);
-    }
-
     @GetMapping("/capacidad")
-    @Operation(summary = "Capacidad de una planta en una fecha")
-    public ResponseEntity<CapacidadPlantasDTO> capacidad(
-            @RequestParam String planta,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
-        return plantaService.getCapacidad(planta, fecha)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @Operation(summary = "Consultar capacidades (todas o por planta y fecha)")
+    public ResponseEntity<?> capacidad(
+            @RequestParam(required = false) String planta,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        if (planta != null && !planta.isBlank()) {
+            return plantaService.getCapacidad(planta, fecha)
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        List<CapacidadPlantaDTO> capacidades = plantaService.listarCapacidades(fecha);
+        return ResponseEntity.ok(capacidades);
     }
 
-    @PostMapping("/asignar")
-    @Operation(summary = "Asignar contenedores a una planta")
+    @PostMapping("/asignacion")
+    @Operation(summary = "Registrar asignación de contenedores en una planta")
     public ResponseEntity<?> asignar(
             @RequestHeader("X-Auth-Token") String token,
             @RequestBody Map<String, Object> payload) {
@@ -79,8 +78,26 @@ public class PlantaController {
 
         Optional<RegistroAuditoriaDTO> asignacion = plantaService.asignar(planta, contenedores,
                 authService.validarToken(token).get().getNombre());
-        return asignacion.<ResponseEntity<?>>map(ResponseEntity::ok)
+        return asignacion.<ResponseEntity<?>>map(a -> ResponseEntity.ok(toAuditoriaInfo(a)))
                 .orElse(ResponseEntity.badRequest()
                         .body(Map.of("error", "Capacidad insuficiente o planta no encontrada")));
+    }
+
+    private RegistroAuditoriaInfoDTO toAuditoriaInfo(RegistroAuditoriaDTO dto) {
+        RegistroAuditoriaInfoDTO info = new RegistroAuditoriaInfoDTO();
+        info.setPersonal(dto.getPersonal());
+        info.setPlanta(dto.getPlanta());
+        info.setPlantaId(dto.getPlantaId());
+        info.setFecha(dto.getFecha());
+        info.setTotalEnvases(dto.getTotalEnvases());
+        if (dto.getContenedorAsignado() != null) {
+            ContenedorInfoDTO cont = new ContenedorInfoDTO();
+            cont.setUbicacion(dto.getContenedorAsignado().getUbicacion());
+            cont.setCapInicial(dto.getContenedorAsignado().getCapInicial());
+            cont.setEstadoEnvase(dto.getContenedorAsignado().getEstadoEnvase());
+            cont.setNumEnvases(dto.getContenedorAsignado().getNumEnvases());
+            info.setContenedorAsignado(cont);
+        }
+        return info;
     }
 }

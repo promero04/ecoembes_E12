@@ -1,6 +1,5 @@
 package com.plassb.entity;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +23,8 @@ public class Asignacion {
     @Column(name = "asignacion_id", nullable = false, unique = true)
     private String asignacionId;
 
-    private LocalDate fecha;
+    @Column(name = "planta_id")
+    private Long plantaId;
 
     private String solicitante;
 
@@ -32,17 +32,15 @@ public class Asignacion {
 
     private String estado;
 
-    private String detalle;
-
     @OneToMany(mappedBy = "asignacion", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ContenedorAsignado> contenedores = new ArrayList<>();
 
     public Asignacion() {
     }
 
-    public Asignacion(String asignacionId, LocalDate fecha, String solicitante, double totalEnvases, String estado) {
+    public Asignacion(String asignacionId, Long plantaId, String solicitante, double totalEnvases, String estado) {
         this.asignacionId = asignacionId;
-        this.fecha = fecha;
+        this.plantaId = plantaId;
         this.solicitante = solicitante;
         this.totalEnvases = totalEnvases;
         this.estado = estado;
@@ -61,10 +59,6 @@ public class Asignacion {
         return asignacionId;
     }
 
-    public LocalDate getFecha() {
-        return fecha;
-    }
-
     public String getSolicitante() {
         return solicitante;
     }
@@ -81,15 +75,15 @@ public class Asignacion {
         this.estado = estado;
     }
 
-    public void setDetalle(String detalle) {
-        this.detalle = detalle;
-    }
-
-    public String getDetalle() {
-        return detalle;
-    }
-
     public List<ContenedorAsignado> getContenedores() {
         return contenedores;
+    }
+
+    public Long getPlantaId() {
+        return plantaId;
+    }
+
+    public void setPlantaId(Long plantaId) {
+        this.plantaId = plantaId;
     }
 }

@@ -1,4 +1,4 @@
-package com.ecoembes.service.proxy;
+package com.ecoembes.service.gateway;
 
 import java.util.Arrays;
 import java.util.List;

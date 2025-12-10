@@ -14,8 +14,6 @@ public class HomePlasSbController {
     public Map<String, String> index() {
         return Map.of(
                 "status", "ok",
-                "message", "API PlasSB operativa",
-                "docs", "/swagger-ui/index.html",
-                "h2", "/h2-console");
+                "message", "API PlasSB operativa");
     }
 }

@@ -2,7 +2,7 @@
 
 Este repo contiene tres servicios separados en el mismo proyecto Gradle:
 
-- **Ecoembes Server** (API principal, persistencia H2, proxies a servicios externos).
+- **Ecoembes Server** (API principal, persistencia H2, gateways a servicios externos).
 - **PlasSB Server** (Spring Boot + JPA/H2, expone capacidades y asignaciones).
 - **ContSocket Server** (REST + sockets + persistencia en memoria).
 
@@ -22,21 +22,20 @@ cd C:\Users\usuario\git\ecoembes_E12\ecoembes_E12
 ```powershell
 .\gradlew.bat bootRun
 ```
-- Swagger UI: http://localhost:8081/swagger-ui/index.html
 - H2 console: http://localhost:8081/h2-console (JDBC `jdbc:h2:mem:ecoembes`, user `sa`, sin password).
+- Swagger UI: http://localhost:8081/swagger-ui/index.html
 
 ### 2) PlasSB Server (puerto 8082)
 ```powershell
 .\gradlew.bat bootRunPlasSb
 ```
-- Swagger UI: http://localhost:8082/swagger-ui/index.html
 - H2 console: http://localhost:8082/h2-plassb (JDBC `jdbc:h2:mem:plassb`, user `sa`, sin password).
+- Swagger UI: http://localhost:8082/swagger-ui/index.html
 
 ### 3) ContSocket Server (puerto 8083, socket 9090)
 ```powershell
 .\gradlew.bat bootRunContSocket
 ```
-- Swagger UI: http://localhost:8083/swagger-ui/index.html
 - Servidor TCP escuchando en `localhost:9090` (acepta líneas `ASIGNACION|{id}|{planta}|{total}`).
 
 ## Dependencias y perfiles

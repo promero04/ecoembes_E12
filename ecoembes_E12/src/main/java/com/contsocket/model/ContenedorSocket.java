@@ -1,6 +1,10 @@
 package com.contsocket.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
 public class ContenedorSocket {
+    @JsonProperty(access = Access.WRITE_ONLY)
     private Integer id;
     private Integer numEnvases;
     private String estado;

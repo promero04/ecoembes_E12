@@ -1,10 +1,10 @@
-package com.ecoembes.service.proxy;
+package com.ecoembes.service.gateway;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import com.ecoembes.DTO.CapacidadPlantasDTO;
+import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
 
 /**
@@ -21,12 +21,12 @@ public interface PlantaGateway {
     /**
      * Recupera la capacidad de la planta asociada para la fecha indicada.
      */
-    Optional<CapacidadPlantasDTO> capacidad(LocalDate fecha);
+    Optional<CapacidadPlantaDTO> capacidad(LocalDate fecha);
 
     /**
      * Recupera capacidades (puede devolver lista de un único elemento).
      */
-    List<CapacidadPlantasDTO> capacidades(LocalDate fecha);
+    List<CapacidadPlantaDTO> capacidades(LocalDate fecha);
 
     /**
      * Registra una asignación de contenedores en el servicio externo.

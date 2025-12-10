@@ -3,12 +3,10 @@ package com.ecoembes.DTO;
 import java.time.LocalDate;
 import java.util.Objects;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-
-@Schema(description = "Data Transfer Object for RegistroAuditoria entity")
 public class RegistroAuditoriaDTO {
 
     private PersonalDTO personal;
+    private Long plantaId;
     private String planta;
     private ContenedorDTO contenedorAsignado;
     private LocalDate fecha;
@@ -18,9 +16,10 @@ public class RegistroAuditoriaDTO {
         // Constructor sin argumentos necesario para la deserializacion.
     }
 
-    public RegistroAuditoriaDTO(PersonalDTO personal, String planta, ContenedorDTO contenedorAsignado, LocalDate fecha,
-            double totalEnvases) {
+    public RegistroAuditoriaDTO(PersonalDTO personal, Long plantaId, String planta, ContenedorDTO contenedorAsignado,
+            LocalDate fecha, double totalEnvases) {
         this.personal = personal;
+        this.plantaId = plantaId;
         this.planta = planta;
         this.contenedorAsignado = contenedorAsignado;
         this.fecha = fecha;
@@ -33,6 +32,14 @@ public class RegistroAuditoriaDTO {
 
     public void setPersonal(PersonalDTO personal) {
         this.personal = personal;
+    }
+
+    public Long getPlantaId() {
+        return plantaId;
+    }
+
+    public void setPlantaId(Long plantaId) {
+        this.plantaId = plantaId;
     }
 
     public String getPlanta() {
@@ -69,7 +76,7 @@ public class RegistroAuditoriaDTO {
 
     @Override
     public int hashCode() {
-        return Objects.hash(contenedorAsignado, fecha, personal, planta, totalEnvases);
+        return Objects.hash(contenedorAsignado, fecha, personal, planta, plantaId, totalEnvases);
     }
 
     @Override
@@ -85,6 +92,7 @@ public class RegistroAuditoriaDTO {
                 && Objects.equals(contenedorAsignado, other.contenedorAsignado)
                 && Objects.equals(fecha, other.fecha)
                 && Objects.equals(personal, other.personal)
-                && Objects.equals(planta, other.planta);
+                && Objects.equals(planta, other.planta)
+                && Objects.equals(plantaId, other.plantaId);
     }
 }

@@ -21,8 +21,12 @@ import com.plassb.entity.Capacidad;
 import com.plassb.entity.ContenedorAsignado;
 import com.plassb.service.PlasSbService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/v1")
+@Tag(name = "PlasSb", description = "Capacidades y asignaciones (PlasSB)")
 public class PlasSbController {
 
     private final PlasSbService plasSbService;
@@ -36,20 +40,23 @@ public class PlasSbController {
         return Map.of("status", "ok");
     }
 
-    @PostMapping("/capacidades")
+    @PostMapping("/capacidad")
+    @Operation(summary = "Crear o actualizar capacidad por fecha")
     public ResponseEntity<Capacidad> crearCapacidad(@RequestBody CapacidadRequest request) {
         Capacidad capacidad = plasSbService.upsertCapacidad(request.fecha(), request.capacidadTon());
         return ResponseEntity.status(HttpStatus.CREATED).body(capacidad);
     }
 
-    @GetMapping("/capacidades")
+    @GetMapping("/capacidad")
+    @Operation(summary = "Listar capacidades en rango")
     public List<Capacidad> capacidades(
             @RequestParam(value = "fechaInicio", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
             @RequestParam(value = "fechaFin", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin) {
         return plasSbService.capacidades(fechaInicio, fechaFin);
     }
 
-    @GetMapping("/capacidades/{fecha}")
+    @GetMapping("/capacidad/{fecha}")
+    @Operation(summary = "Capacidad por fecha")
     public ResponseEntity<Capacidad> capacidadPorFecha(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
         return plasSbService.capacidad(fecha)
@@ -57,35 +64,38 @@ public class PlasSbController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/asignaciones")
+    @PostMapping("/asignacion")
+    @Operation(summary = "Crear asignación")
     public ResponseEntity<AsignacionResponse> asignacion(@RequestBody AsignacionRequest request) {
         List<ContenedorAsignado> contenedores = request.contenedores().stream()
                 .map(c -> new ContenedorAsignado(c.id(), c.numEnvases(), c.estado()))
                 .collect(Collectors.toList());
-        Asignacion asignacion = plasSbService.crearAsignacion(request.asignacionId(), request.fecha(),
+        Asignacion asignacion = plasSbService.crearAsignacion(request.asignacionId(), request.plantaId(),
                 request.solicitante(), request.totalEnvases(), contenedores);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AsignacionResponse(asignacion.getAsignacionId(), asignacion.getEstado(),
                         "Asignacion registrada"));
     }
 
-    @GetMapping("/asignaciones")
-    public List<Asignacion> listarAsignaciones(
-            @RequestParam(value = "fecha", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
-        return plasSbService.asignaciones(fecha);
+    @GetMapping("/asignacion")
+    @Operation(summary = "Listar asignaciones (opcional filtro por plantaId)")
+    public List<Asignacion> listarAsignaciones(@RequestParam(value = "plantaId", required = false) Long plantaId) {
+        return plasSbService.asignaciones(plantaId);
     }
 
-    @GetMapping("/asignaciones/{asignacionId}")
+    @GetMapping("/asignacion/{asignacionId}")
+    @Operation(summary = "Detalle de asignación por id externo")
     public ResponseEntity<Asignacion> asignacionDetalle(@PathVariable String asignacionId) {
         return plasSbService.asignacionPorId(asignacionId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/asignaciones/{asignacionId}/estado")
+    @PostMapping("/asignacion/{asignacionId}/estado")
+    @Operation(summary = "Actualizar estado de asignación")
     public ResponseEntity<Asignacion> actualizarEstado(@PathVariable String asignacionId,
             @RequestBody EstadoRequest request) {
-        return plasSbService.actualizarEstado(asignacionId, request.estado(), request.detalle())
+        return plasSbService.actualizarEstado(asignacionId, request.estado())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -101,13 +111,13 @@ public class PlasSbController {
     public record ContenedorRequest(Integer id, Integer numEnvases, String estado) {
     }
 
-    public record AsignacionRequest(String asignacionId, LocalDate fecha, String solicitante, double totalEnvases,
+    public record AsignacionRequest(String asignacionId, Long plantaId, String solicitante, double totalEnvases,
             List<ContenedorRequest> contenedores) {
     }
 
     public record AsignacionResponse(String asignacionId, String estado, String mensaje) {
     }
 
-    public record EstadoRequest(String estado, String detalle) {
+    public record EstadoRequest(String estado) {
     }
 }

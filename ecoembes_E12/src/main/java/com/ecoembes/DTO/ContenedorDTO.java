@@ -4,9 +4,6 @@ import java.util.Objects;
 
 import com.ecoembes.entity.EstadoEnvase;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-
-@Schema(description = "Data Transfer Object for Contenedor entity")
 public class ContenedorDTO {
 
     private int idContenedor;

@@ -42,31 +42,28 @@ public class PlasSbService {
                 .toList();
     }
 
-    public Asignacion crearAsignacion(String asignacionId, LocalDate fecha, String solicitante, double totalEnvases,
+    public Asignacion crearAsignacion(String asignacionId, Long plantaId, String solicitante, double totalEnvases,
             List<ContenedorAsignado> contenedores) {
-        Asignacion asignacion = new Asignacion(asignacionId, fecha, solicitante, totalEnvases, "ACEPTADA");
+        Asignacion asignacion = new Asignacion(asignacionId, plantaId, solicitante, totalEnvases, "ACEPTADA");
         contenedores.forEach(asignacion::addContenedor);
         return asignacionRepository.save(asignacion);
     }
 
-    public List<Asignacion> asignaciones(LocalDate fecha) {
-        if (fecha == null) {
+    public List<Asignacion> asignaciones(Long plantaId) {
+        if (plantaId == null) {
             return asignacionRepository.findAll();
         }
-        return asignacionRepository.findAll().stream()
-                .filter(a -> fecha.equals(a.getFecha()))
-                .toList();
+        return asignacionRepository.findByPlantaId(plantaId);
     }
 
     public Optional<Asignacion> asignacionPorId(String asignacionId) {
         return asignacionRepository.findByAsignacionId(asignacionId);
     }
 
-    public Optional<Asignacion> actualizarEstado(String asignacionId, String estado, String detalle) {
+    public Optional<Asignacion> actualizarEstado(String asignacionId, String estado) {
         Optional<Asignacion> asig = asignacionRepository.findByAsignacionId(asignacionId);
         asig.ifPresent(a -> {
             a.setEstado(estado);
-            a.setDetalle(detalle);
             asignacionRepository.save(a);
         });
         return asig;

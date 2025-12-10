@@ -1,4 +1,4 @@
-package com.ecoembes.service.proxy;
+package com.ecoembes.service.gateway;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -14,23 +14,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import com.ecoembes.DTO.CapacidadPlantasDTO;
-import com.ecoembes.DTO.ContenedorDTO;
+import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
 
 import reactor.core.publisher.Mono;
 
 @Component
-public class ContSocketProxy implements PlantaGateway {
+public class ContSocketServiceGateway implements PlantaGateway {
 
-    private static final Logger log = LoggerFactory.getLogger(ContSocketProxy.class);
+    private static final Logger log = LoggerFactory.getLogger(ContSocketServiceGateway.class);
     private static final String ID = "contsocket";
     private final WebClient client;
     private final String socketHost;
     private final int socketPort;
     private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
 
-    public ContSocketProxy(@Value("${external.contsocket.base-url}") String baseUrl,
+    public ContSocketServiceGateway(@Value("${external.contsocket.base-url}") String baseUrl,
             @Value("${external.contsocket.socket-host}") String socketHost,
             @Value("${external.contsocket.socket-port}") int socketPort,
             WebClient.Builder builder) {
@@ -45,12 +44,13 @@ public class ContSocketProxy implements PlantaGateway {
     }
 
     @Override
-    public Optional<CapacidadPlantasDTO> capacidad(LocalDate fecha) {
+    public Optional<CapacidadPlantaDTO> capacidad(LocalDate fecha) {
+        LocalDate target = fecha != null ? fecha : LocalDate.now();
         return client.get()
-                .uri("/capacidades/{fecha}", formatter.format(fecha))
+                .uri("/capacidad/{fecha}", formatter.format(target))
                 .retrieve()
                 .bodyToMono(CapacidadResponse.class)
-                .map(resp -> new CapacidadPlantasDTO("ContSocket", resp.capacidadTon()))
+                .map(resp -> new CapacidadPlantaDTO("ContSocket", resp.capacidadTon()))
                 .onErrorResume(ex -> {
                     log.warn("No se pudo leer capacidad en ContSocket: {}", ex.getMessage());
                     return Mono.empty();
@@ -60,12 +60,17 @@ public class ContSocketProxy implements PlantaGateway {
 
     @Override
     public boolean registrarAsignacion(String asignacionId, RegistroAuditoriaDTO dto) {
-        var payload = new AsignacionRequest(asignacionId, dto.getFecha(),
+        var contenedores = dto.getContenedorAsignado() == null ? List.<ContenedorAsignacionPayload>of()
+                : List.of(new ContenedorAsignacionPayload(
+                        dto.getContenedorAsignado().getIdContenedor(),
+                        dto.getContenedorAsignado().getNumEnvases(),
+                        dto.getContenedorAsignado().getEstadoEnvase().name()));
+        var payload = new AsignacionRequest(asignacionId, dto.getPlantaId(),
                 dto.getPersonal() != null ? dto.getPersonal().getCorreo() : "ecoembes",
                 dto.getTotalEnvases(),
-                dto.getContenedorAsignado() == null ? List.of() : List.of(dto.getContenedorAsignado()));
+                contenedores);
         Boolean ok = client.post()
-                .uri("/asignaciones")
+                .uri("/asignacion")
                 .bodyValue(payload)
                 .retrieve()
                 .bodyToMono(AsignacionResponse.class)
@@ -81,7 +86,8 @@ public class ContSocketProxy implements PlantaGateway {
     private boolean fallbackSocket(String asignacionId, RegistroAuditoriaDTO dto) {
         try (Socket socket = new Socket(socketHost, socketPort);
                 PrintWriter writer = new PrintWriter(socket.getOutputStream(), true)) {
-            writer.printf("ASIGNACION|%s|%s|%f%n", asignacionId, dto.getPlanta(), dto.getTotalEnvases());
+            long plantaId = dto.getPlantaId() != null ? dto.getPlantaId() : 0L;
+            writer.printf("ASIGNACION|%s|%d|%f%n", asignacionId, plantaId, dto.getTotalEnvases());
             return true;
         } catch (IOException ex) {
             log.error("No se pudo registrar via socket en ContSocket: {}", ex.getMessage());
@@ -89,18 +95,21 @@ public class ContSocketProxy implements PlantaGateway {
         }
     }
 
-    public record AsignacionRequest(String asignacionId, LocalDate fecha, String solicitante, double totalEnvases,
-            List<ContenedorDTO> contenedores) {
+    public record AsignacionRequest(String asignacionId, Long plantaId, String solicitante, double totalEnvases,
+            List<ContenedorAsignacionPayload> contenedores) {
     }
 
     public record AsignacionResponse(String asignacionId, String estado, String mensaje) {
+    }
+
+    public record ContenedorAsignacionPayload(Integer id, Integer numEnvases, String estado) {
     }
 
     public record CapacidadResponse(LocalDate fecha, double capacidadTon) {
     }
 
     @Override
-    public List<CapacidadPlantasDTO> capacidades(LocalDate fecha) {
+    public List<CapacidadPlantaDTO> capacidades(LocalDate fecha) {
         return capacidad(fecha).map(List::of).orElseGet(List::of);
     }
 }

@@ -8,7 +8,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import com.ecoembes.DTO.CapacidadPlantasDTO;
+import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.ContenedorDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
 import com.ecoembes.entity.CapacidadPlanta;
@@ -19,8 +19,8 @@ import com.ecoembes.repository.CapacidadPlantaRepository;
 import com.ecoembes.repository.ContenedorRepository;
 import com.ecoembes.repository.PlantaReciclajeRepository;
 import com.ecoembes.repository.RegistroAuditoriaRepository;
-import com.ecoembes.service.proxy.PlantaGateway;
-import com.ecoembes.service.proxy.PlantaGatewayFactory;
+import com.ecoembes.service.gateway.PlantaGateway;
+import com.ecoembes.service.gateway.PlantaGatewayFactory;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -72,20 +72,20 @@ public class PlantaService {
         });
     }
 
-    public List<CapacidadPlantasDTO> listarCapacidades(LocalDate fecha) {
+    public List<CapacidadPlantaDTO> listarCapacidades(LocalDate fecha) {
         LocalDate target = fecha != null ? fecha : LocalDate.now();
-        Map<String, CapacidadPlantasDTO> capacidades = new LinkedHashMap<>();
+        Map<String, CapacidadPlantaDTO> capacidades = new LinkedHashMap<>();
         // Capacidades locales
         capacidadPlantaRepository.findByFecha(target).stream()
                 .map(this::toDto)
-                .forEach(cap -> capacidades.put(cap.getPlanta(), cap));
+                .forEach(cap -> capacidades.put(cap.getNombrePlanta(), cap));
         // Capacidades externas (PlasSB y ContSocket)
         plantaGatewayFactory.getGateways().forEach(gw -> gw.capacidades(target)
-                .forEach(cap -> capacidades.put(cap.getPlanta(), cap)));
+                .forEach(cap -> capacidades.put(cap.getNombrePlanta(), cap)));
         return capacidades.values().stream().toList();
     }
 
-    public Optional<CapacidadPlantasDTO> getCapacidad(String nombrePlanta, LocalDate fecha) {
+    public Optional<CapacidadPlantaDTO> getCapacidad(String nombrePlanta, LocalDate fecha) {
         Optional<PlantaReciclaje> planta = plantaReciclajeRepository.findByNombre(nombrePlanta);
         if (planta.isEmpty()) {
             return Optional.empty();
@@ -121,6 +121,7 @@ public class PlantaService {
 
         RegistroAuditoriaDTO dto = new RegistroAuditoriaDTO();
         dto.setPlanta(nombrePlanta);
+        dto.setPlantaId(planta.get().getId() != null ? planta.get().getId().longValue() : null);
         dto.setFecha(hoy);
         dto.setTotalEnvases(totalEnvases);
         dto.setContenedorAsignado(contenedores.isEmpty() ? null : contenedores.get(0));
@@ -133,7 +134,7 @@ public class PlantaService {
         return Optional.of(dto);
     }
 
-    private CapacidadPlantasDTO toDto(CapacidadPlanta capacidad) {
-        return new CapacidadPlantasDTO(capacidad.getPlanta().getNombre(), capacidad.getCapacidadDisponible());
+    private CapacidadPlantaDTO toDto(CapacidadPlanta capacidad) {
+        return new CapacidadPlantaDTO(capacidad.getPlanta().getNombre(), capacidad.getCapacidadDisponible());
     }
 }

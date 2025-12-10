@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/auth")
-@Tag(name = "Auth", description = "Login y logout para el personal de Ecoembes")
+@Tag(name = "Auth", description = "Login/logout de personal")
 public class AuthController {
 
     private final AuthService authService;
@@ -27,7 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login con correo y contrasena")
+    @Operation(summary = "Login con correo y contraseña")
     public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> body) {
         String correo = body.get("correo");
         String contrasena = body.get("contrasena");
@@ -37,7 +37,6 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "Logout invalidando el token")
     public ResponseEntity<Map<String, String>> logout(@RequestHeader("X-Auth-Token") String token) {
         boolean ok = authService.logout(token);
         if (ok) {

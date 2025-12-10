@@ -1,5 +1,8 @@
 package com.plassb.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
@@ -20,6 +23,7 @@ public class ContenedorAsignado {
     private Long id;
 
     @Column(name = "contenedor_id")
+    @JsonProperty(access = Access.WRITE_ONLY)
     private Integer contenedorId;
 
     @Column(name = "num_envases")

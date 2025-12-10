@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.contsocket.model.AsignacionSocket;
@@ -35,40 +36,45 @@ public class ContSocketController {
         return Map.of("status", "ok");
     }
 
-    @PutMapping("/capacidades/{fecha}")
+    @PutMapping("/capacidad/{fecha}")
     public ResponseEntity<CapacidadSocket> capacidad(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
             @RequestBody CapacidadRequest request) {
         CapacidadSocket cap = contSocketService.upsertCapacidad(fecha, request.capacidadTon());
         return ResponseEntity.ok(cap);
     }
 
-    @GetMapping("/capacidades/{fecha}")
+    @GetMapping("/capacidad/{fecha}")
     public ResponseEntity<CapacidadSocket> capacidad(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
         return contSocketService.capacidad(fecha)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/asignaciones")
+    @PostMapping("/asignacion")
     public ResponseEntity<AsignacionResponse> crearAsignacion(@RequestBody AsignacionRequest request) {
         List<ContenedorSocket> contenedores = request.contenedores();
-        AsignacionSocket asig = contSocketService.crearAsignacion(request.asignacionId(), request.fecha(),
+        AsignacionSocket asig = contSocketService.crearAsignacion(request.asignacionId(), request.plantaId(),
                 request.solicitante(), request.totalEnvases(), contenedores);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new AsignacionResponse(asig.getAsignacionId(), asig.getEstado(), "Asignacion registrada"));
     }
 
-    @GetMapping("/asignaciones/{asignacionId}")
+    @GetMapping("/asignacion")
+    public List<AsignacionSocket> listarAsignaciones(@RequestParam(value = "plantaId", required = false) Long plantaId) {
+        return contSocketService.asignacionesPorPlanta(plantaId);
+    }
+
+    @GetMapping("/asignacion/{asignacionId}")
     public ResponseEntity<AsignacionSocket> detalle(@PathVariable String asignacionId) {
         return contSocketService.asignacion(asignacionId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/asignaciones/{asignacionId}/estado")
+    @PostMapping("/asignacion/{asignacionId}/estado")
     public ResponseEntity<AsignacionSocket> estado(@PathVariable String asignacionId,
             @RequestBody EstadoRequest request) {
-        return contSocketService.actualizarEstado(asignacionId, request.estado(), request.detalle())
+        return contSocketService.actualizarEstado(asignacionId, request.estado())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -76,13 +82,13 @@ public class ContSocketController {
     public record CapacidadRequest(double capacidadTon) {
     }
 
-    public record AsignacionRequest(String asignacionId, LocalDate fecha, String solicitante, double totalEnvases,
+    public record AsignacionRequest(String asignacionId, Long plantaId, String solicitante, double totalEnvases,
             List<ContenedorSocket> contenedores) {
     }
 
     public record AsignacionResponse(String asignacionId, String estado, String mensaje) {
     }
 
-    public record EstadoRequest(String estado, String detalle) {
+    public record EstadoRequest(String estado) {
     }
 }
