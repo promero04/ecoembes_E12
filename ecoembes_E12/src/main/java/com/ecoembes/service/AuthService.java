@@ -1,9 +1,7 @@
 package com.ecoembes.service;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
@@ -40,9 +38,9 @@ public class AuthService {
             return Optional.empty();
         }
         Personal personal = personalOpt.get();
-        String token = UUID.randomUUID() + "-" + LocalDateTime.now();
+        String token = String.valueOf(System.currentTimeMillis());
         tokensActivos.put(token, personal);
-        personal.setToken();
+        personal.setToken(token);
         personalRepository.save(personal);
         return Optional.of(token);
     }

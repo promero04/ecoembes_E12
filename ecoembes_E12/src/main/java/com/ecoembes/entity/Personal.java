@@ -1,6 +1,5 @@
 package com.ecoembes.entity;
 
-import java.time.LocalDate;
 import java.util.Objects;
 
 import jakarta.persistence.Column;
@@ -28,7 +27,7 @@ public class Personal {
     @Column(nullable = false)
     private String contrasena;
 
-    private LocalDate token; // usado para la gestión de sesiones
+    private String token; // usado para la gestion de sesiones
 
     protected Personal() {
         // JPA
@@ -69,12 +68,12 @@ public class Personal {
         this.contrasena = contrasena;
     }
 
-    public LocalDate getToken() {
+    public String getToken() {
         return token;
     }
 
-    public void setToken() {
-        this.token = LocalDate.now();
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public void setTokenNull() {

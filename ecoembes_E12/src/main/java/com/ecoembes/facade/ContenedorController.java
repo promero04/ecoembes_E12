@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ecoembes.DTO.ContenedorDTO;
 import com.ecoembes.DTO.ContenedorInfoDTO;
 import com.ecoembes.entity.EstadoEnvase;
+import com.ecoembes.service.AuthService;
 import com.ecoembes.service.ContenedorService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,27 +32,40 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class ContenedorController {
 
     private final ContenedorService contenedorService;
+    private final AuthService authService;
 
-    public ContenedorController(ContenedorService contenedorService) {
+    public ContenedorController(ContenedorService contenedorService, AuthService authService) {
         this.contenedorService = contenedorService;
+        this.authService = authService;
     }
 
     @GetMapping
     @Operation(summary = "Listado de contenedores con filtro por zona y fecha")
-    public List<ContenedorInfoDTO> listar(@RequestParam(value = "zona", required = false) String zona,
+    public ResponseEntity<List<ContenedorInfoDTO>> listar(
+            @RequestHeader("X-Auth-Token") String token,
+            @RequestParam(value = "zona", required = false) String zona,
             @RequestParam(value = "fecha", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        if (authService.validarToken(token).isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         if (fecha != null) {
-            return contenedorService.buscarPorFechaYZona(fecha, zona).stream().map(this::toPublicDto).toList();
+            return ResponseEntity.ok(
+                    contenedorService.buscarPorFechaYZona(fecha, zona).stream().map(this::toPublicDto).toList());
         }
         if (zona != null && !zona.isBlank()) {
-            return contenedorService.buscarPorZona(zona).stream().map(this::toPublicDto).toList();
+            return ResponseEntity.ok(
+                    contenedorService.buscarPorZona(zona).stream().map(this::toPublicDto).toList());
         }
-        return contenedorService.listar().stream().map(this::toPublicDto).toList();
+        return ResponseEntity.ok(contenedorService.listar().stream().map(this::toPublicDto).toList());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Detalle de contenedor")
-    public ResponseEntity<ContenedorInfoDTO> obtener(@PathVariable int id) {
+    public ResponseEntity<ContenedorInfoDTO> obtener(@RequestHeader("X-Auth-Token") String token,
+            @PathVariable int id) {
+        if (authService.validarToken(token).isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         return contenedorService.obtener(id)
                 .map(this::toPublicDto)
                 .map(ResponseEntity::ok)
@@ -59,7 +74,11 @@ public class ContenedorController {
 
     @PostMapping
     @Operation(summary = "Crear contenedor")
-    public ResponseEntity<ContenedorInfoDTO> crear(@RequestBody ContenedorDTO dto) {
+    public ResponseEntity<ContenedorInfoDTO> crear(@RequestHeader("X-Auth-Token") String token,
+            @RequestBody ContenedorDTO dto) {
+        if (authService.validarToken(token).isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         ContenedorDTO creado = contenedorService.crear(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(toPublicDto(creado));
     }
@@ -75,9 +94,14 @@ public class ContenedorController {
 
     @GetMapping("/{id}/uso")
     @Operation(summary = "Consulta de uso por rango de fechas")
-    public ResponseEntity<List<ContenedorInfoDTO>> consultarUso(@PathVariable int id,
+    public ResponseEntity<List<ContenedorInfoDTO>> consultarUso(
+            @RequestHeader("X-Auth-Token") String token,
+            @PathVariable int id,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin) {
+        if (authService.validarToken(token).isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
         List<ContenedorInfoDTO> lecturas = contenedorService.consultarUso(id, inicio, fin).stream()
                 .map(this::toPublicDto)
                 .toList();

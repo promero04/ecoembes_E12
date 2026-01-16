@@ -1,10 +1,11 @@
 # Ecoembes E12 – Guía de ejecución de servicios
 
-Este repo contiene tres servicios separados en el mismo proyecto Gradle:
+Este repo contiene cuatro servicios separados en el mismo proyecto Gradle:
 
 - **Ecoembes Server** (API principal, persistencia H2, gateways a servicios externos).
 - **PlasSB Server** (Spring Boot + JPA/H2, expone capacidades y asignaciones).
 - **ContSocket Server** (REST + sockets + persistencia en memoria).
+- **Cliente Ecoembes** (interfaz web Thymeleaf para el personal).
 
 ## Prerrequisitos
 - JDK 21 instalado y en PATH.
@@ -38,15 +39,26 @@ cd C:\Users\usuario\git\ecoembes_E12\ecoembes_E12
 ```
 - Servidor TCP escuchando en `localhost:9090` (acepta líneas `ASIGNACION|{id}|{planta}|{total}`).
 
+### 4) Cliente Ecoembes (puerto 8084)
+```powershell
+.\gradlew.bat bootRunClienteEcoembes
+```
+- Interfaz web: http://localhost:8084
+
 ## Dependencias y perfiles
 - Ecoembes usa perfil por defecto (`application.properties`).
 - PlasSB usa perfil `plassb` (`application-plassb.properties`).
 - ContSocket usa perfil `contsocket` (`application-contsocket.properties`).
+- Cliente Ecoembes usa perfil `client` (`application-client.properties`).
 
 ## Testing
 ```powershell
 .\gradlew.bat test
 ```
+
+## Simulacion de contenedor (Swagger/Postman)
+- Endpoint: `PUT /contenedor/{id}/sensor?numEnvases=...&estado=VERDE|NARANJA|ROJO`.
+- Simula la lectura diaria (3:00) enviando la peticion desde Swagger UI o Postman.
 
 ## Notas
 - Los datos de demo (contenedores, plantas, capacidades) se cargan al arrancar si la tabla está vacía.

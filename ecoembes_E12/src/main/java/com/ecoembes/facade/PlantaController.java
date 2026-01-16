@@ -1,9 +1,7 @@
 package com.ecoembes.facade;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -16,11 +14,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ecoembes.DTO.AsignacionRequestDTO;
 import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.ContenedorDTO;
 import com.ecoembes.DTO.ContenedorInfoDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
 import com.ecoembes.DTO.RegistroAuditoriaInfoDTO;
+import com.ecoembes.entity.Personal;
 import com.ecoembes.service.AuthService;
 import com.ecoembes.service.ContenedorService;
 import com.ecoembes.service.PlantaService;
@@ -46,8 +46,12 @@ public class PlantaController {
     @GetMapping("/capacidad")
     @Operation(summary = "Consultar capacidades (todas o por planta y fecha)")
     public ResponseEntity<?> capacidad(
+            @RequestHeader("X-Auth-Token") String token,
             @RequestParam(required = false) String planta,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        if (authService.validarToken(token).isEmpty()) {
+            return ResponseEntity.status(401).body(java.util.Map.of("error", "Token no valido"));
+        }
         if (planta != null && !planta.isBlank()) {
             return plantaService.getCapacidad(planta, fecha)
                     .<ResponseEntity<?>>map(ResponseEntity::ok)
@@ -61,14 +65,13 @@ public class PlantaController {
     @Operation(summary = "Registrar asignación de contenedores en una planta")
     public ResponseEntity<?> asignar(
             @RequestHeader("X-Auth-Token") String token,
-            @RequestBody Map<String, Object> payload) {
-        String planta = (String) payload.get("planta");
-        @SuppressWarnings("unchecked")
-        List<Integer> ids = (List<Integer>) payload.getOrDefault("contenedores", new ArrayList<>());
-
-        if (authService.validarToken(token).isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("error", "Token no valido"));
+            @RequestBody AsignacionRequestDTO payload) {
+        Optional<Personal> personalOpt = authService.validarToken(token);
+        if (personalOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(java.util.Map.of("error", "Token no valido"));
         }
+        String planta = payload.getPlanta();
+        List<Integer> ids = payload.getContenedores();
 
         List<ContenedorDTO> contenedores = ids.stream()
                 .map(contenedorService::obtener)
@@ -76,11 +79,10 @@ public class PlantaController {
                 .map(Optional::get)
                 .toList();
 
-        Optional<RegistroAuditoriaDTO> asignacion = plantaService.asignar(planta, contenedores,
-                authService.validarToken(token).get().getNombre());
+        Optional<RegistroAuditoriaDTO> asignacion = plantaService.asignar(planta, contenedores, personalOpt.get());
         return asignacion.<ResponseEntity<?>>map(a -> ResponseEntity.ok(toAuditoriaInfo(a)))
                 .orElse(ResponseEntity.badRequest()
-                        .body(Map.of("error", "Capacidad insuficiente o planta no encontrada")));
+                        .body(java.util.Map.of("error", "Capacidad insuficiente o planta no encontrada")));
     }
 
     private RegistroAuditoriaInfoDTO toAuditoriaInfo(RegistroAuditoriaDTO dto) {

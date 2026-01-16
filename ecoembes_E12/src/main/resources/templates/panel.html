@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliente Ecoembes - Panel</title>
+    <link rel="stylesheet" th:href="@{/css/cliente.css}">
+</head>
+<body class="theme-signal">
+    <div class="page-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Cliente Ecoembes</p>
+                <h1>Panel operativo</h1>
+            </div>
+            <div class="user-block">
+                <span th:text="${correo}">usuario@ecoembes.com</span>
+                <form th:action="@{/logout}" method="post">
+                    <button class="btn ghost" type="submit">Cerrar sesion</button>
+                </form>
+            </div>
+        </header>
+
+        <main class="panel-grid">
+            <section class="panel-section" style="--delay: .05s">
+                <h2>Crear contenedor</h2>
+                <form class="form-grid" th:action="@{/panel/contenedor/crear}" method="post">
+                    <label>
+                        <span>Ubicacion</span>
+                        <input type="text" name="ubicacion" required>
+                    </label>
+                    <label>
+                        <span>Capacidad inicial</span>
+                        <input type="number" name="capInicial" step="0.1" min="0" required>
+                    </label>
+                    <label>
+                        <span>Envases estimados</span>
+                        <input type="number" name="numEnvases" min="0" required>
+                    </label>
+                    <label>
+                        <span>Estado</span>
+                        <select name="estadoEnvase" required>
+                            <option value="VERDE">Verde</option>
+                            <option value="NARANJA">Naranja</option>
+                            <option value="ROJO">Rojo</option>
+                        </select>
+                    </label>
+                    <button class="btn primary" type="submit">Registrar</button>
+                </form>
+                <div class="result" th:if="${creacionResultado}">
+                    <h3>Contenedor creado</h3>
+                    <p th:text="'Ubicacion: ' + ${creacionResultado.ubicacion}"></p>
+                    <p th:text="'Envases: ' + ${creacionResultado.numEnvases}"></p>
+                    <p th:text="'Estado: ' + ${creacionResultado.estadoEnvase}"></p>
+                </div>
+                <p class="form-error" th:if="${creacionError}" th:text="${creacionError}"></p>
+            </section>
+
+            <section class="panel-section" style="--delay: .1s">
+                <h2>Consulta por zona y fecha</h2>
+                <form class="form-grid" th:action="@{/panel/contenedor/consulta-zona}" method="post">
+                    <label>
+                        <span>Zona (codigo postal)</span>
+                        <input type="text" name="zona" placeholder="28001">
+                    </label>
+                    <label>
+                        <span>Fecha</span>
+                        <input type="date" name="fecha">
+                    </label>
+                    <button class="btn primary" type="submit">Buscar</button>
+                </form>
+                <div class="result" th:if="${zonaResultados}">
+                    <h3>Resultados</h3>
+                    <div class="table-shell">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ubicacion</th>
+                                    <th>Capacidad</th>
+                                    <th>Envases</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${zonaResultados}">
+                                    <td th:text="${item.ubicacion}"></td>
+                                    <td th:text="${item.capInicial}"></td>
+                                    <td th:text="${item.numEnvases}"></td>
+                                    <td th:text="${item.estadoEnvase}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel-section" style="--delay: .15s">
+                <h2>Uso de contenedor</h2>
+                <form class="form-grid" th:action="@{/panel/contenedor/uso}" method="post">
+                    <label>
+                        <span>ID contenedor</span>
+                        <input type="number" name="idContenedor" min="1" required>
+                    </label>
+                    <label>
+                        <span>Inicio</span>
+                        <input type="date" name="inicio" required>
+                    </label>
+                    <label>
+                        <span>Fin</span>
+                        <input type="date" name="fin" required>
+                    </label>
+                    <button class="btn primary" type="submit">Consultar</button>
+                </form>
+                <div class="result" th:if="${usoResultados}">
+                    <h3>Lecturas</h3>
+                    <div class="table-shell">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ubicacion</th>
+                                    <th>Capacidad</th>
+                                    <th>Envases</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${usoResultados}">
+                                    <td th:text="${item.ubicacion}"></td>
+                                    <td th:text="${item.capInicial}"></td>
+                                    <td th:text="${item.numEnvases}"></td>
+                                    <td th:text="${item.estadoEnvase}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="form-error" th:if="${usoError}" th:text="${usoError}"></p>
+            </section>
+
+            <section class="panel-section" style="--delay: .2s">
+                <h2>Capacidad de plantas</h2>
+                <form class="form-grid" th:action="@{/panel/planta/capacidad}" method="post">
+                    <label>
+                        <span>Planta (opcional)</span>
+                        <input type="text" name="planta" placeholder="PlasSB Ltd.">
+                    </label>
+                    <label>
+                        <span>Fecha</span>
+                        <input type="date" name="fecha">
+                    </label>
+                    <button class="btn primary" type="submit">Consultar</button>
+                </form>
+                <div class="result" th:if="${capacidadResultados}">
+                    <h3>Capacidades</h3>
+                    <div class="table-shell">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Planta</th>
+                                    <th>Capacidad (t)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="item : ${capacidadResultados}">
+                                    <td th:text="${item.nombrePlanta}"></td>
+                                    <td th:text="${item.capacidadDisponible}"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p class="form-error" th:if="${capacidadError}" th:text="${capacidadError}"></p>
+            </section>
+
+            <section class="panel-section" style="--delay: .25s">
+                <h2>Asignar contenedores</h2>
+                <form class="form-grid" th:action="@{/panel/planta/asignar}" method="post">
+                    <label>
+                        <span>Planta</span>
+                        <input type="text" name="planta" required>
+                    </label>
+                    <label>
+                        <span>IDs contenedores (separados por coma)</span>
+                        <input type="text" name="contenedores" placeholder="1,2,3" required>
+                    </label>
+                    <button class="btn primary" type="submit">Asignar</button>
+                </form>
+                <div class="result" th:if="${asignacionResultado}">
+                    <h3>Asignacion registrada</h3>
+                    <p th:text="'Planta: ' + ${asignacionResultado.planta}"></p>
+                    <p th:text="'Fecha: ' + ${asignacionResultado.fecha}"></p>
+                    <p th:text="'Total envases: ' + ${asignacionResultado.totalEnvases}"></p>
+                </div>
+                <p class="form-error" th:if="${asignacionError}" th:text="${asignacionError}"></p>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

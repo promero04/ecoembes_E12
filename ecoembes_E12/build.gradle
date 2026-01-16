@@ -26,6 +26,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 	runtimeOnly 'com.h2database:h2'
@@ -55,5 +56,13 @@ tasks.register('bootRunContSocket', org.springframework.boot.gradle.tasks.run.Bo
 	description = 'Arranca el servicio ContSocket (REST + sockets en memoria).'
 	mainClass = 'com.contsocket.ContSocketApplication'
 	args('--spring.profiles.active=contsocket')
+	classpath = sourceSets.main.runtimeClasspath
+}
+
+tasks.register('bootRunClienteEcoembes', org.springframework.boot.gradle.tasks.run.BootRun) {
+	group = 'application'
+	description = 'Arranca el cliente Ecoembes (Thymeleaf).'
+	mainClass = 'com.ecoembes.cliente.ClienteEcoembesApp'
+	args('--spring.profiles.active=client')
 	classpath = sourceSets.main.runtimeClasspath
 }

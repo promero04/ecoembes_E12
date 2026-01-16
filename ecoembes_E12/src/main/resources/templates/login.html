@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliente Ecoembes - Acceso</title>
+    <link rel="stylesheet" th:href="@{/css/cliente.css}">
+</head>
+<body class="theme-signal">
+    <div class="page-shell">
+        <main class="login-layout">
+            <section class="login-hero">
+                <p class="eyebrow">Cliente Ecoembes</p>
+                <h1>Centro de control para contenedores y plantas</h1>
+                <p class="subtitle">
+                    Gestiona contenedores, consulta estados y coordina asignaciones con visibilidad completa.
+                </p>
+                <div class="hero-grid">
+                    <div class="hero-card">
+                        <h3>Estado diario</h3>
+                        <p>Lecturas registradas a las 3:00 con detalle por zona y fecha.</p>
+                    </div>
+                    <div class="hero-card">
+                        <h3>Capacidad real</h3>
+                        <p>Consulta disponibilidad de plantas con un solo vistazo.</p>
+                    </div>
+                    <div class="hero-card">
+                        <h3>Asignaciones trazables</h3>
+                        <p>Registro de auditoria con identidad del personal responsable.</p>
+                    </div>
+                </div>
+            </section>
+            <section class="login-panel">
+                <h2>Acceso del personal</h2>
+                <p class="panel-hint">Introduce tu correo y contrasena.</p>
+                <form class="form-stack" th:action="@{/login}" method="post">
+                    <label>
+                        <span>Correo</span>
+                        <input type="email" name="correo" required autocomplete="username">
+                    </label>
+                    <label>
+                        <span>Contrasena</span>
+                        <input type="password" name="contrasena" required autocomplete="current-password">
+                    </label>
+                    <button class="btn primary" type="submit">Entrar</button>
+                </form>
+                <p class="form-error" th:if="${error}" th:text="${error}"></p>
+                <div class="demo-hint">
+                    <p>Usuarios demo</p>
+                    <p><strong>ana@ecoembes.com</strong> y <strong>luis@ecoembes.com</strong> (1234)</p>
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

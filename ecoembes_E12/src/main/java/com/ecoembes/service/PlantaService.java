@@ -10,9 +10,11 @@ import org.springframework.stereotype.Service;
 
 import com.ecoembes.DTO.CapacidadPlantaDTO;
 import com.ecoembes.DTO.ContenedorDTO;
+import com.ecoembes.DTO.PersonalDTO;
 import com.ecoembes.DTO.RegistroAuditoriaDTO;
 import com.ecoembes.entity.CapacidadPlanta;
 import com.ecoembes.entity.Contenedor;
+import com.ecoembes.entity.Personal;
 import com.ecoembes.entity.PlantaReciclaje;
 import com.ecoembes.entity.RegistroAuditoria;
 import com.ecoembes.repository.CapacidadPlantaRepository;
@@ -95,7 +97,7 @@ public class PlantaService {
 
     @Transactional
     public Optional<RegistroAuditoriaDTO> asignar(String nombrePlanta, List<ContenedorDTO> contenedores,
-            String nombrePersonal) {
+            Personal personal) {
         LocalDate hoy = LocalDate.now();
         Optional<PlantaReciclaje> planta = plantaReciclajeRepository.findByNombre(nombrePlanta);
         if (planta.isEmpty()) {
@@ -117,7 +119,7 @@ public class PlantaService {
         Contenedor contenedorAsignado = contenedores.isEmpty() ? null
                 : contenedorRepository.findById(contenedores.get(0).getIdContenedor()).orElse(null);
         RegistroAuditoria registro = registroAuditoriaRepository
-                .save(new RegistroAuditoria(null, nombrePlanta, contenedorAsignado, hoy, totalEnvases));
+                .save(new RegistroAuditoria(personal, nombrePlanta, contenedorAsignado, hoy, totalEnvases));
 
         RegistroAuditoriaDTO dto = new RegistroAuditoriaDTO();
         dto.setPlanta(nombrePlanta);
@@ -125,7 +127,9 @@ public class PlantaService {
         dto.setFecha(hoy);
         dto.setTotalEnvases(totalEnvases);
         dto.setContenedorAsignado(contenedores.isEmpty() ? null : contenedores.get(0));
-        dto.setPersonal(null);
+        if (personal != null) {
+            dto.setPersonal(new PersonalDTO(personal.getCorreo()));
+        }
         // Registrar en servicios externos a través de gateways configurados
         String asignacionId = "ASG-" + registro.getId();
         for (PlantaGateway gateway : plantaGatewayFactory.getGateways()) {
